@@ -34,6 +34,9 @@ const getVideoComments = asyncHandler(async (req, res) => {
         ],
         Comments: [
           { $skip: (pageNumber - 1) * pageSize },
+          //total 50
+          //allowed 10
+          //page 2 = 3 - 1 * 10
           { $limit: pageSize },
         ],
       },

@@ -13,6 +13,55 @@ import {
 const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
   // TODO: get all videos based on query, sort, pagination
+  //get page number and limit
+  const pageNumber = parseInt(page);
+  const pageSize = parseInt(limit);
+
+  //sort video in asc or dsc
+  let sortVideos;
+  if (sortType === "asc") {
+    //asc
+    sortVideos = 1;
+  } else {
+    //dsc
+    sortVideos = -1;
+  }
+
+  const pipeline = [];
+
+  //get videos with userId
+  const matchStage = { owner: new mongoose.Types.ObjectId(userId) };
+
+  //if query is given by user
+  if (query) {
+    matchStage.$text = { $search: query };
+  }
+
+  //push $match into pipeline
+  pipeline.push({ $match: matchStage });
+  pipeline.push({
+    $facet: {
+      //total videos using $count
+      totalCount: [{ $count: "total" }],
+      //pagination
+      videos: [
+        {
+          //sort by most viwed video
+          $sort: { [sortBy]: sortVideos },
+        },
+        { $skip: (pageNumber - 1) * pageSize },
+        { $limit: pageSize },
+      ],
+    },
+  });
+
+  //aggregate query
+  const videos = await Video.aggregate(pipeline);
+
+  //return statement
+  return res
+    .status(200)
+    .json(new ApiResponse(200, videos, "Videos fetched Successfully"));
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
